@@ -1,5 +1,7 @@
 ﻿// (C) Copyright 2021 by  
 //
+using System;
+
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
@@ -7,6 +9,7 @@ using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.EditorInput;
 
 using Autodesk.AutoCAD.Windows;
+using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
 // This line is not mandatory, but improves loading performances
 [assembly: CommandClass(typeof(AutoCAD_CSharp_plug_in1.MyCommands))]
@@ -169,6 +172,25 @@ namespace AutoCAD_CSharp_plug_in1
         }
 
 		public PaletteSet myPaletteSet;
+
+		public UserControl1 myPalette;
+
+		[CommandMethod("Palette")]
+		public void palette()
+		{
+			if (myPaletteSet == null)
+			{
+				myPaletteSet = new PaletteSet("My SkyPalette", new Guid("D7467BCE-EA62-4709-BF36-206ADA8DBE19"));
+
+				myPalette = new UserControl1();
+
+				myPaletteSet.Add("SkyPalette1", myPalette);
+
+			}
+
+			myPaletteSet.Visible = true;
+
+		}
 
 		
     }
