@@ -171,23 +171,26 @@ namespace AutoCAD_CSharp_plug_in1
             }
         }
 
+		//объявляем набор палитр
 		public PaletteSet myPaletteSet;
-
+		//объявляем палитру
 		public UserControl1 myPalette;
-
+		//задаём команду
 		[CommandMethod("Palette")]
 		public void palette()
 		{
+			//проверяем, что набор палитр ещё не создана
 			if (myPaletteSet == null)
 			{
+				//создаём набор палитр с уникальным гуид
 				myPaletteSet = new PaletteSet("My SkyPalette", new Guid("D7467BCE-EA62-4709-BF36-206ADA8DBE19"));
-
+				//закидываем в переменную созданную форму
 				myPalette = new UserControl1();
-
+				//добавление формы/палитры в набор палитр (необходимо в конструкторе формы явно ук5азать поддержку прозрачности this.SetStyle(System.Windows.Forms.ControlStyles.SupportsTransparentBackColor, true);)
 				myPaletteSet.Add("SkyPalette1", myPalette);
 
 			}
-
+			//показываем набор палитр
 			myPaletteSet.Visible = true;
 
 		}
