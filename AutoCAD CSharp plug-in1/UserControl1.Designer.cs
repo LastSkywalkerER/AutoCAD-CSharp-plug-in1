@@ -1,19 +1,17 @@
 ﻿
-using System.Windows.Forms;
-
 namespace AutoCAD_CSharp_plug_in1
 {
 	partial class UserControl1
 	{
-		/// <summary>
-		/// Required designer variable.
+		/// <summary> 
+		/// Обязательная переменная конструктора.
 		/// </summary>
 		private System.ComponentModel.IContainer components = null;
 
-		/// <summary>
-		/// Clean up any resources being used.
+		/// <summary> 
+		/// Освободить все используемые ресурсы.
 		/// </summary>
-		/// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+		/// <param name="disposing">истинно, если управляемый ресурс должен быть удален; иначе ложно.</param>
 		protected override void Dispose(bool disposing)
 		{
 			if (disposing && (components != null))
@@ -23,15 +21,14 @@ namespace AutoCAD_CSharp_plug_in1
 			base.Dispose(disposing);
 		}
 
-		#region Windows Form Designer generated code
+		#region Код, автоматически созданный конструктором компонентов
 
-		/// <summary>
-		/// Required method for Designer support - do not modify
-		/// the contents of this method with the code editor.
+		/// <summary> 
+		/// Требуемый метод для поддержки конструктора — не изменяйте 
+		/// содержимое этого метода с помощью редактора кода.
 		/// </summary>
 		private void InitializeComponent()
 		{
-			this.SetStyle(ControlStyles.SupportsTransparentBackColor, true);
 			this.treeView1 = new System.Windows.Forms.TreeView();
 			this.SuspendLayout();
 			// 
@@ -40,20 +37,17 @@ namespace AutoCAD_CSharp_plug_in1
 			this.treeView1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-			this.treeView1.Location = new System.Drawing.Point(12, 12);
+			this.treeView1.Location = new System.Drawing.Point(0, 0);
 			this.treeView1.Name = "treeView1";
-			this.treeView1.Size = new System.Drawing.Size(121, 97);
+			this.treeView1.Size = new System.Drawing.Size(150, 150);
 			this.treeView1.TabIndex = 0;
 			// 
 			// UserControl1
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.BackColor = System.Drawing.SystemColors.Control;
-			this.ClientSize = new System.Drawing.Size(800, 450);
 			this.Controls.Add(this.treeView1);
 			this.Name = "UserControl1";
-			this.Text = "UserControl1";
 			this.ResumeLayout(false);
 
 		}

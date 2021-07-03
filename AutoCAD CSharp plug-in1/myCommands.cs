@@ -1,6 +1,7 @@
 ﻿// (C) Copyright 2021 by  
 //
 using System;
+using System.Windows.Forms;
 
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.ApplicationServices;
@@ -10,6 +11,7 @@ using Autodesk.AutoCAD.EditorInput;
 
 using Autodesk.AutoCAD.Windows;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
+using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 
 // This line is not mandatory, but improves loading performances
 [assembly: CommandClass(typeof(AutoCAD_CSharp_plug_in1.MyCommands))]
@@ -187,7 +189,16 @@ namespace AutoCAD_CSharp_plug_in1
 				//закидываем в переменную созданную форму
 				myPalette = new UserControl1();
 				//добавление формы/палитры в набор палитр (необходимо в конструкторе формы явно ук5азать поддержку прозрачности this.SetStyle(System.Windows.Forms.ControlStyles.SupportsTransparentBackColor, true);)
-				myPaletteSet.Add("SkyPalette1", myPalette);
+				try
+				{
+					myPaletteSet.Add("SkyPalette1", myPalette);
+				}
+				catch (System.Exception exception)
+				{
+					Editor editor = Application.DocumentManager.MdiActiveDocument.Editor;
+					editor.WriteMessage("\n не удалось бахнуть палитру : " + exception);
+				}
+				
 
 			}
 			//показываем набор палитр
@@ -195,7 +206,85 @@ namespace AutoCAD_CSharp_plug_in1
 
 		}
 
-		
-    }
+		//команда для отслеживания событий автокада
+		[CommandMethod("AddDbEvents")]
+		public void addDbEvents()
+		{
+			//проверяем создана ли палитра и выходим из метода, если нет
+			if (myPalette == null)
+			{
+				Editor editor = Application.DocumentManager.MdiActiveDocument.Editor;
+				editor.WriteMessage("\n Бахни в начале комманду 'Palette'");
+				return;
+			}
+
+			//получаем базу текущего чертежа
+			Database curDwg = Application.DocumentManager.MdiActiveDocument.Database;
+
+			//вешаем слушатель на создание объекта
+			curDwg.ObjectAppended += new ObjectEventHandler(callback_ObjectAppended);
+			//вешаем слушатель на удаление объекта
+			curDwg.ObjectErased += new ObjectErasedEventHandler(callback_ObjectErased);
+			//вешаем слушатель на пересоздание объекта
+			curDwg.ObjectReappended += new ObjectEventHandler(callback_ObjectAppended);
+			//вешаем слушатель на антисоздание (ШТА??) объекта
+			curDwg.ObjectUnappended += new ObjectEventHandler(callback_ObjectUnappended);
+
+		}
+		//метод вызываемый при создании объекта
+		private void callback_ObjectAppended(object sender, ObjectEventArgs e)
+		{
+			//добавляем узел в дерево и присваеваем его переменной
+			TreeNode newNode = myPalette.treeView1.Nodes.Add(e.DBObject.GetType().ToString());
+			//вешаем тег на созданный узел
+			newNode.Tag = e.DBObject.ObjectId.ToString();
+			
+			//throw new NotImplementedException();
+		}
+
+		private void callback_ObjectErased(object sender, ObjectErasedEventArgs e)
+		{
+			//смотрим, что при удалении, эвент тоже удаление (ШТА??)
+			if (e.Erased)
+			{
+				//перебирваем все узлы и сравниваем по тегу и обжект ид, затем удаляем
+				foreach (TreeNode node in myPalette.treeView1.Nodes)
+				{
+					if ((string)node.Tag == e.DBObject.ObjectId.ToString())
+					{
+						node.Remove();
+						break;
+					}
+				}
+
+			} 
+			//если эвент не удаление, то почему-то добавляем узел
+			else
+			{
+				//добавляем узел в дерево и присваеваем его переменной
+				TreeNode newNode = myPalette.treeView1.Nodes.Add(e.DBObject.GetType().ToString());
+				//вешаем тег на созданный узел
+				newNode.Tag = e.DBObject.ObjectId.ToString();
+			}
+
+
+			//throw new NotImplementedException();
+		}
+		//метод на антисоздание объекта
+		private void callback_ObjectUnappended(object sender, ObjectEventArgs e)
+		{
+			//перебирваем все узлы и сравниваем по тегу и обжект ид, затем удаляем
+			foreach (TreeNode node in myPalette.treeView1.Nodes)
+			{
+				if ((string)node.Tag == e.DBObject.ObjectId.ToString())
+				{
+					node.Remove();
+					break;
+				}
+			}
+
+			//throw new NotImplementedException();
+		}
+	}
 
 }
