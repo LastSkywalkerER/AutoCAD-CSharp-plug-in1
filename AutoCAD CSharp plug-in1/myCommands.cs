@@ -285,6 +285,176 @@ namespace AutoCAD_CSharp_plug_in1
 
 			//throw new NotImplementedException();
 		}
+
+		//команда на добавление инфы в словари связанные с объектами
+		[CommandMethod("addData")]
+		public void addData()
+		{
+
+			// get the editor object 
+			Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+			// pick entity to add data to! 
+			PromptEntityResult getEntityResult = ed.GetEntity("Pick an entity to add an Extension Dictionary to : ");
+			// if all was ok 
+			if ((getEntityResult.Status == PromptStatus.OK))
+			{
+				// now start a transaction 
+				Transaction trans = ed.Document.Database.TransactionManager.StartTransaction();
+				try
+				{
+					//получаем выделенный объект для чтения (наверно если их несколько не сработает и нужен перебор)
+					Entity ent = (Entity)trans.GetObject(getEntityResult.ObjectId, OpenMode.ForRead);
+					//проверяем, что у объекта нет связанного словаря
+					if (ent.ExtensionDictionary.IsNull)
+					{
+						//открываем объект на запись
+						ent.UpgradeOpen();
+						//добавляем словарь к объекту
+						ent.CreateExtensionDictionary();
+					}
+					//получаем связанные с объектом словарь на чтение
+					DBDictionary extensionDict = (DBDictionary)trans.GetObject(ent.ExtensionDictionary, OpenMode.ForRead);
+					//проверяем есть ли в словаре наша инфа
+					if (extensionDict.Contains("MyData"))
+					{
+						//получаем ид нашей инфы в словаре
+						ObjectId entryId = extensionDict.GetAt("MyData");
+						//сообщаем о наличии инфы
+						ed.WriteMessage("\n В объекте уже есть инфа");
+						//получаем нашу инфу из словаря на чтение
+						Xrecord myXrecord = (Xrecord)trans.GetObject(entryId, OpenMode.ForRead);
+						//пробегаемся по списку из нашей инфы
+						foreach (TypedValue value in myXrecord.Data)
+						{
+							//выводим построчно инфу из инфы
+							ed.WriteMessage("\n" + value.TypeCode.ToString() + "." + value.Value.ToString());
+						}
+					}
+					//действия на случай отсутвия у объекта инфы
+					else
+					{
+						//обновляем объект на запись
+						extensionDict.UpgradeOpen();
+						//создаём новую запись словаря
+						Xrecord myXrecord = new Xrecord();
+						//создаём новый список инфы для словаря
+						ResultBuffer data = new ResultBuffer(new TypedValue((int)DxfCode.Int16, 1),
+															 new TypedValue((int)DxfCode.Text, "MyStockData"),
+															 new TypedValue((int)DxfCode.Real, 51.9),
+															 new TypedValue((int)DxfCode.Real, 100.0),
+															 new TypedValue((int)DxfCode.Real, 320.6)
+															 );
+						//закидываем инфу в словарь
+						myXrecord.Data = data;
+						//закидываем наш словарь в словарь объекта
+						extensionDict.SetAt("MyData", myXrecord);
+						//говорим транзакции о добавлении инфы в словарь
+						trans.AddNewlyCreatedDBObject(myXrecord, true);
+						//проверяем создана ли палитра
+						if (myPalette != null)
+						{
+							//перебирваем узлы в палитре
+							foreach (TreeNode node in myPalette.treeView1.Nodes)
+							{
+								//ищем выделенный объект в палитре
+								if ((string)node.Tag == ent.ObjectId.ToString())
+								{
+									//создаём дочерний узел для доп инфы по словарю
+									TreeNode childNode = node.Nodes.Add("Extension Dictionary");
+									//для ккаждой записи в словаре добавляем строку в палитру
+									foreach (TypedValue value in myXrecord.Data)
+									{
+										childNode.Nodes.Add(value.ToString());
+									}
+									break;
+								}
+							}
+						}
+					}
+					
+					trans.Commit();
+				}
+				catch (Exception ex)
+				{
+					// a problem occured, lets print it 
+					ed.WriteMessage("a problem occured because " + ex.Message);
+				}
+				finally
+				{
+					// whatever happens we must dispose the transaction 
+
+					trans.Dispose();
+
+				}
+
+			}
+		}
+
+		//команда на добавление инфы в глобальный словарь чертежа
+		[CommandMethod("addDataToNOD")]
+		public void addDataToNOD()
+		{
+
+			// get the editor object 
+			Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+			// pick entity to add data to! 
+			Transaction trans = ed.Document.Database.TransactionManager.StartTransaction();
+			try
+			{
+				//получаем глобальный словарь на чтение
+				DBDictionary nod = (DBDictionary)trans.GetObject(ed.Document.Database.NamedObjectsDictionaryId, OpenMode.ForRead);
+				//проверяем есть ли в словаре уже есть наша инфа
+				if (nod.Contains("MyData"))
+				{
+					//получаем ид нашей инфы
+					ObjectId entryId = nod.GetAt("MyData");
+					//говорим о наличии
+					ed.WriteMessage("\n на уровне чертежа (NOD) наша инфа уже есть");
+					//получаем нашу инфу на чтение
+					Xrecord myXrecord = (Xrecord)trans.GetObject(entryId, OpenMode.ForRead);
+					//перебираем список в нашей инфе и выводим построчно
+					foreach (TypedValue value in myXrecord.Data)
+					{
+						ed.WriteMessage("\n" + value.TypeCode.ToString() + " . " + value.Value.ToString());
+					}
+				}
+				else
+				{
+					//обновляем глобальный словарь на запись
+					nod.UpgradeOpen();
+					//создаём новый словарь
+					Xrecord myXrecord = new Xrecord();
+					//создаём новую запись словаря
+					ResultBuffer data = new ResultBuffer(new TypedValue((int)DxfCode.Int16, 1),
+															 new TypedValue((int)DxfCode.Text, "MyStockData"),
+															 new TypedValue((int)DxfCode.Real, 51.9),
+															 new TypedValue((int)DxfCode.Real, 100.0),
+															 new TypedValue((int)DxfCode.Real, 320.6)
+															 );
+					//добавляем запись в словарь
+					myXrecord.Data = data;
+					//добавляем наш словарь в глобальный
+					nod.SetAt("MyData", myXrecord);
+					//говорим транзакции о добавлении инфы в словарь
+					trans.AddNewlyCreatedDBObject(myXrecord, true);
+				}
+				
+				trans.Commit();
+			}
+			catch (Exception ex)
+			{
+				// a problem occurred, lets print it 
+				ed.WriteMessage("a problem occurred because " + ex.Message);
+			}
+			finally
+			{
+				// whatever happens we must dispose the transaction 
+
+				trans.Dispose();
+
+			}
+		}
+
 	}
 
 }
