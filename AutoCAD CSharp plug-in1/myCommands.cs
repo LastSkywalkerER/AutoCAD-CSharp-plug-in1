@@ -18,21 +18,21 @@ using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace AutoCAD_CSharp_plug_in1
 {
-    public class MyCommands
-    {
+	public class MyCommands
+	{
 		//даём комманду автокада методу
-        [CommandMethod("addAnEnt")]
-        public void AddAnEnt()
-        {
+		[CommandMethod("addAnEnt")]
+		public void AddAnEnt()
+		{
 			//получаем редактор текущего документа
-            Editor editor = Application.DocumentManager.MdiActiveDocument.Editor;
+			Editor editor = Application.DocumentManager.MdiActiveDocument.Editor;
 			//запрашиваем ввод у пользователя
-            PromptKeywordOptions getWhichEntityOptions = new PromptKeywordOptions("Чё создаём? [Circle/Block] : " , "Circle Block");
+			PromptKeywordOptions getWhichEntityOptions = new PromptKeywordOptions("Чё создаём? [Circle/Block] : ", "Circle Block");
 			//получаем строку из редактора
-            PromptResult getWichEntityResult = editor.GetKeywords(getWhichEntityOptions);
+			PromptResult getWichEntityResult = editor.GetKeywords(getWhichEntityOptions);
 			//если был ввод, то продалжаем
-            if (getWichEntityResult.Status == PromptStatus.OK)
-            {
+			if (getWichEntityResult.Status == PromptStatus.OK)
+			{
 
 				//получаем базу данных текущего чертежа
 				Database dwg = editor.Document.Database;
@@ -43,7 +43,7 @@ namespace AutoCAD_CSharp_plug_in1
 				switch (getWichEntityResult.StringResult)
 				{
 					case "Circle":
-						 
+
 						//просим точку у юзверя
 						PromptPointOptions getPointOptions = new PromptPointOptions("Клацни по центру : ");
 						//получаем точку от юзверя
@@ -62,7 +62,7 @@ namespace AutoCAD_CSharp_plug_in1
 							//если получили радиус - продолжаем
 							if (getRadiusResult.Status == PromptStatus.OK)
 							{
-								
+
 								try
 								{
 									// создаём окружность по базовой точке, вектору нормали и радиусу
@@ -91,16 +91,16 @@ namespace AutoCAD_CSharp_plug_in1
 							}
 						}
 						break;
-						
 
-                    case "Block":
+
+					case "Block":
 						//запрашиваем строку-имя блока
-                        PromptStringOptions blockNameOptions = new PromptStringOptions("Дайте кликуху блоку : ");
+						PromptStringOptions blockNameOptions = new PromptStringOptions("Дайте кликуху блоку : ");
 						//запрещаем пробелы в имени блока
-                        blockNameOptions.AllowSpaces = false;
+						blockNameOptions.AllowSpaces = false;
 						//получаем строку от эдитора
-                        PromptResult blockNameResult = editor.GetString(blockNameOptions);
-						
+						PromptResult blockNameResult = editor.GetString(blockNameOptions);
+
 
 						try
 						{
@@ -168,10 +168,10 @@ namespace AutoCAD_CSharp_plug_in1
 							transaction.Dispose();
 						}
 
-                        break;
-                }
-            }
-        }
+						break;
+				}
+			}
+		}
 
 		//объявляем набор палитр
 		public PaletteSet myPaletteSet;
@@ -198,7 +198,7 @@ namespace AutoCAD_CSharp_plug_in1
 					Editor editor = Application.DocumentManager.MdiActiveDocument.Editor;
 					editor.WriteMessage("\n не удалось бахнуть палитру : " + exception);
 				}
-				
+
 
 			}
 			//показываем набор палитр
@@ -238,7 +238,7 @@ namespace AutoCAD_CSharp_plug_in1
 			TreeNode newNode = myPalette.treeView1.Nodes.Add(e.DBObject.GetType().ToString());
 			//вешаем тег на созданный узел
 			newNode.Tag = e.DBObject.ObjectId.ToString();
-			
+
 			//throw new NotImplementedException();
 		}
 
@@ -257,7 +257,7 @@ namespace AutoCAD_CSharp_plug_in1
 					}
 				}
 
-			} 
+			}
 			//если эвент не удаление, то почему-то добавляем узел
 			else
 			{
@@ -371,7 +371,7 @@ namespace AutoCAD_CSharp_plug_in1
 							}
 						}
 					}
-					
+
 					trans.Commit();
 				}
 				catch (Exception ex)
@@ -438,7 +438,7 @@ namespace AutoCAD_CSharp_plug_in1
 					//говорим транзакции о добавлении инфы в словарь
 					trans.AddNewlyCreatedDBObject(myXrecord, true);
 				}
-				
+
 				trans.Commit();
 			}
 			catch (Exception ex)
@@ -455,6 +455,176 @@ namespace AutoCAD_CSharp_plug_in1
 			}
 		}
 
-	}
+		[CommandMethod("addPointMonitor")]
+		public void startMonitor()
+		{
+			Editor editor = Application.DocumentManager.MdiActiveDocument.Editor;
 
+			editor.PointMonitor += new PointMonitorEventHandler(MyPointMonitor);
+		}
+
+		private void MyPointMonitor(object sender, PointMonitorEventArgs e)
+		{
+			FullSubentityPath[] fullEntPath = e.Context.GetPickedEntities();
+
+			if (fullEntPath.Length > 0)
+			{
+				Transaction transaction = Application.DocumentManager.MdiActiveDocument.Database.TransactionManager.StartTransaction();
+
+				try
+				{
+					Entity ent = (Entity)transaction.GetObject(fullEntPath[0].GetObjectIds()[0], OpenMode.ForRead);
+
+					e.AppendToolTipText("эта штука есть " + ent.GetType().ToString());
+
+					if (myPalette == null)
+					{
+						return;
+					}
+
+					System.Drawing.Font fontRegular = new System.Drawing.Font("Microsoft Sans Serif", 8, System.Drawing.FontStyle.Regular);
+					System.Drawing.Font fontBold = new System.Drawing.Font("Microsoft Sans Serif", 8, System.Drawing.FontStyle.Bold);
+
+					myPalette.treeView1.SuspendLayout();
+
+					foreach (TreeNode node in myPalette.treeView1.Nodes)
+					{
+						if ((string)node.Tag == ent.ObjectId.ToString())
+						{
+							if (!fontBold.Equals(node.NodeFont))
+							{
+								node.NodeFont = fontBold;
+
+								node.Text = node.Text;
+							}
+						}
+						else
+						{
+							if (!fontRegular.Equals(node.NodeFont))
+							{
+								node.NodeFont = fontRegular;
+
+							}
+
+						}
+					}
+
+					myPalette.treeView1.ResumeLayout();
+					myPalette.treeView1.Refresh();
+					myPalette.treeView1.Update();
+
+					transaction.Commit();
+				}
+				catch (Exception ex)
+				{
+					Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage(ex.ToString());
+				}
+				finally
+				{
+					transaction.Dispose();
+				}
+			}
+
+			//throw new NotImplementedException();
+		}
+
+		[CommandMethod("newInput")]
+		public void NewInput()
+		{
+			// start our input point Monitor    
+			// get the editor object
+			Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+
+			// now add the delegate to the events list
+			ed.PointMonitor += new PointMonitorEventHandler(MyInputMonitor);
+
+			ed.TurnForcedPickOn();
+
+			PromptPointOptions getPointOptions = new PromptPointOptions("клацни де нить : ");
+
+			PromptPointResult getPointResult = ed.GetPoint(getPointOptions);
+
+			ed.PointMonitor -= new PointMonitorEventHandler(MyInputMonitor);
+
+		}
+
+		public void MyInputMonitor(object sender, PointMonitorEventArgs e)
+		{
+			if (e.Context == null)
+			{
+				return;
+			}
+
+			//  first lets check what is under the Cursor
+			FullSubentityPath[] fullEntPath = e.Context.GetPickedEntities();
+			if (fullEntPath.Length > 0)
+			{
+				//  start a transaction
+				Transaction trans = Application.DocumentManager.MdiActiveDocument.Database.TransactionManager.StartTransaction();
+				try
+				{
+					//  open the Entity for read, it must be derived from Curve
+					Curve ent = (Curve)trans.GetObject(fullEntPath[0].GetObjectIds()[0], OpenMode.ForRead);
+
+					//  ok, so if we are over something - then check to see if it has an extension dictionary
+					if (ent.ExtensionDictionary.IsValid)
+					{
+						// open it for read
+						DBDictionary extensionDict = (DBDictionary)trans.GetObject(ent.ExtensionDictionary, OpenMode.ForRead);
+
+						// find the entry
+						ObjectId entryId = extensionDict.GetAt("MyData");
+
+						// if we are here, then all is ok
+						// extract the xrecord
+						Xrecord myXrecord;
+
+						//  read it from the extension dictionary
+						myXrecord = (Xrecord)trans.GetObject(entryId, OpenMode.ForRead);
+
+						foreach (TypedValue myTypedValue in myXrecord.Data)
+						{
+							if ((DxfCode)myTypedValue.TypeCode == DxfCode.Real)
+							{
+								Point3d point = ent.GetPointAtDist((double)myTypedValue.Value);
+
+								Point2d pixels = e.Context.DrawContext.Viewport.GetNumPixelsInUnitSquare(point);
+
+								double xDist = 10 / pixels.X;
+								double yDist = 10 / pixels.Y;
+
+								Circle circle = new Circle(point, Vector3d.ZAxis, xDist);
+
+								e.Context.DrawContext.Geometry.Draw(circle);
+
+								DBText text = new DBText();
+
+								text.SetDatabaseDefaults();
+
+								text.Position = point + new Vector3d(xDist, yDist, 0);
+
+								text.TextString = myTypedValue.Value.ToString();
+
+								text.Height = yDist;
+
+								e.Context.DrawContext.Geometry.Draw(text);
+							}
+						}
+					}
+					//  all ok, commit it
+					trans.Commit();
+				}
+				catch (Exception ex)
+				{
+					Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage(ex.ToString());
+				}
+				finally
+				{
+					//  whatever happens we must dispose the transaction
+					trans.Dispose();
+				}
+			}
+		}
+	}
 }
+
