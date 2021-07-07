@@ -454,65 +454,67 @@ namespace AutoCAD_CSharp_plug_in1
 
 			}
 		}
-
+		//создаём команду на описание объекта под курсором
 		[CommandMethod("addPointMonitor")]
 		public void startMonitor()
 		{
 			Editor editor = Application.DocumentManager.MdiActiveDocument.Editor;
-
+			//вешаем обработчик события на движение мыши
 			editor.PointMonitor += new PointMonitorEventHandler(MyPointMonitor);
 		}
-
+		//сам обработчик по движению мыши
 		private void MyPointMonitor(object sender, PointMonitorEventArgs e)
 		{
+			//получаемс список объектов под курсором
 			FullSubentityPath[] fullEntPath = e.Context.GetPickedEntities();
-
+			//проверяем, что под курсором что то есть
 			if (fullEntPath.Length > 0)
 			{
+				//запускаем транзакцию
 				Transaction transaction = Application.DocumentManager.MdiActiveDocument.Database.TransactionManager.StartTransaction();
 
 				try
 				{
+					//получаем верхний объект на чтение
 					Entity ent = (Entity)transaction.GetObject(fullEntPath[0].GetObjectIds()[0], OpenMode.ForRead);
-
+					//показываем всплывающее сообщение
 					e.AppendToolTipText("эта штука есть " + ent.GetType().ToString());
-
+					//т к работает с палитрой, проверяем её наличие
 					if (myPalette == null)
 					{
 						return;
 					}
-
+					//создаём шрифты для палитры
 					System.Drawing.Font fontRegular = new System.Drawing.Font("Microsoft Sans Serif", 8, System.Drawing.FontStyle.Regular);
 					System.Drawing.Font fontBold = new System.Drawing.Font("Microsoft Sans Serif", 8, System.Drawing.FontStyle.Bold);
-
+					//останавливаем обновление узлов дерево, вроде
 					myPalette.treeView1.SuspendLayout();
-
+					//ищем совпадение в дереве с объектом под курсором
 					foreach (TreeNode node in myPalette.treeView1.Nodes)
 					{
 						if ((string)node.Tag == ent.ObjectId.ToString())
 						{
+							//если нашли совпадение, делаем текст жирным
 							if (!fontBold.Equals(node.NodeFont))
 							{
 								node.NodeFont = fontBold;
-
 								node.Text = node.Text;
 							}
 						}
 						else
 						{
+							//в несовпадающих узлах делаем обычный шрифт
 							if (!fontRegular.Equals(node.NodeFont))
 							{
 								node.NodeFont = fontRegular;
-
 							}
-
 						}
 					}
-
+					//запускаем обновления узлов
 					myPalette.treeView1.ResumeLayout();
 					myPalette.treeView1.Refresh();
 					myPalette.treeView1.Update();
-
+					//подтверждаем транзакцию
 					transaction.Commit();
 				}
 				catch (Exception ex)
@@ -527,7 +529,7 @@ namespace AutoCAD_CSharp_plug_in1
 
 			//throw new NotImplementedException();
 		}
-
+		//создаём команду на создание геометрии на объекте под курсором
 		[CommandMethod("newInput")]
 		public void NewInput()
 		{
@@ -537,19 +539,19 @@ namespace AutoCAD_CSharp_plug_in1
 
 			// now add the delegate to the events list
 			ed.PointMonitor += new PointMonitorEventHandler(MyInputMonitor);
-
+			//что то вроде включения насильно привязки
 			ed.TurnForcedPickOn();
-
+			//делаем зпрос пользователю на точку
 			PromptPointOptions getPointOptions = new PromptPointOptions("клацни де нить : ");
-
 			PromptPointResult getPointResult = ed.GetPoint(getPointOptions);
-
+			//снимаем прослушиватель после клаца 
 			ed.PointMonitor -= new PointMonitorEventHandler(MyInputMonitor);
 
 		}
 
 		public void MyInputMonitor(object sender, PointMonitorEventArgs e)
 		{
+			//проверяем, что под курсором что то есть
 			if (e.Context == null)
 			{
 				return;
@@ -581,32 +583,34 @@ namespace AutoCAD_CSharp_plug_in1
 
 						//  read it from the extension dictionary
 						myXrecord = (Xrecord)trans.GetObject(entryId, OpenMode.ForRead);
-
+						//перебираем все строки записи в словаре
 						foreach (TypedValue myTypedValue in myXrecord.Data)
 						{
+							//если запись типо Real то ок
 							if ((DxfCode)myTypedValue.TypeCode == DxfCode.Real)
 							{
+								//возвращает точку из словаря относительно начала кривой в глобальных координатах
 								Point3d point = ent.GetPointAtDist((double)myTypedValue.Value);
-
+								//делаем происходящее независимым от масштаба, хз как
 								Point2d pixels = e.Context.DrawContext.Viewport.GetNumPixelsInUnitSquare(point);
 
 								double xDist = 10 / pixels.X;
 								double yDist = 10 / pixels.Y;
-
+								//бахаем круг в точку из словаря, с радиусом из словаря с поправкой на масштаб
 								Circle circle = new Circle(point, Vector3d.ZAxis, xDist);
-
+								//рисуем круг в виде аннотации
 								e.Context.DrawContext.Geometry.Draw(circle);
-
+								//создаём текст
 								DBText text = new DBText();
-
+								//что то типо сброса настроек текста в модели
 								text.SetDatabaseDefaults();
-
+								//ставим текст рядом с соответсвующим кругом на значение его радиуса
 								text.Position = point + new Vector3d(xDist, yDist, 0);
-
+								//делаем значеие текста равным записи в словаре
 								text.TextString = myTypedValue.Value.ToString();
-
+								//устанавливаем высоту текста
 								text.Height = yDist;
-
+								//ресуем текст так же аннотацией
 								e.Context.DrawContext.Geometry.Draw(text);
 							}
 						}
