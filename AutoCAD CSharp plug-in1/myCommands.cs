@@ -629,6 +629,159 @@ namespace AutoCAD_CSharp_plug_in1
 				}
 			}
 		}
+
+		private class MyCircleJig : EntityJig
+		{
+			private Point3d centerPoint;
+			private Double radius;
+
+			private int currentInputValue;
+
+			public int CurrentInput
+			{
+				get
+				{
+					return currentInputValue;
+				}
+				set
+				{
+					currentInputValue = value;
+				}
+			}
+
+			public MyCircleJig(Entity ent) : base(ent)
+			{
+
+			}
+
+			protected override SamplerStatus Sampler(JigPrompts prompts)
+			{
+				switch (currentInputValue)
+				{
+					case 0:
+						Point3d oldPnt = centerPoint;
+
+						PromptPointResult jigPromptResult = prompts.AcquirePoint("Бахни середину");
+
+						if (jigPromptResult.Status == PromptStatus.OK)
+						{
+							centerPoint = jigPromptResult.Value;
+
+							if (oldPnt.DistanceTo(centerPoint) < 0.01)
+							{
+								return SamplerStatus.NoChange;
+							}
+						}
+
+						return SamplerStatus.OK;
+						break;
+
+					case 1:
+
+						double oldRadius = radius;
+
+						JigPromptDistanceOptions jigPromptDistanceOptions = new JigPromptDistanceOptions("Бахни радиус ");
+
+						jigPromptDistanceOptions.UseBasePoint = true;
+
+						jigPromptDistanceOptions.BasePoint = centerPoint;
+
+						PromptDoubleResult jigPromptPointResult = prompts.AcquireDistance(jigPromptDistanceOptions);
+
+						if (jigPromptPointResult.Status == PromptStatus.OK)
+						{
+							radius = jigPromptPointResult.Value;
+
+							if (System.Math.Abs(radius) < 0.1)
+							{
+								radius = 1;
+							}
+
+							if (System.Math.Abs(oldRadius - radius) < 0.01)
+							{
+								return SamplerStatus.NoChange;
+							}
+						}
+						return SamplerStatus.OK;
+
+						break;
+				}
+				return SamplerStatus.NoChange;
+
+				//throw new NotImplementedException();
+			}
+
+			protected override bool Update()
+			{
+				switch (currentInputValue)
+				{
+					case 0:
+						((Circle)this.Entity).Center = centerPoint;
+
+						break;
+
+					case 1:
+						((Circle)this.Entity).Radius = radius;
+
+						break;
+				}
+				return true;
+
+				//throw new NotImplementedException();
+			}
+		}
+		
+		[CommandMethod("circleJig")]
+		public void circleJig()
+		{
+			Circle circle = new Circle(Point3d.Origin, Vector3d.ZAxis, 10);
+
+			MyCircleJig jig = new MyCircleJig(circle);
+
+			for (int i = 0; i < 2; i++)
+			{
+				jig.CurrentInput = i;
+
+				Editor editor = Application.DocumentManager.MdiActiveDocument.Editor;
+
+				PromptResult promptResult = editor.Drag(jig);
+
+				if ((promptResult.Status == PromptStatus.Cancel) || (promptResult.Status == PromptStatus.Error))
+				{
+					return;
+				}
+			}
+
+			Database dwg = Application.DocumentManager.MdiActiveDocument.Database;
+			// now start a transaction 
+			Transaction trans = dwg.TransactionManager.StartTransaction();
+			try
+			{
+
+				// open the current space for write 
+				BlockTableRecord currentSpace = (BlockTableRecord)trans.GetObject(dwg.CurrentSpaceId, OpenMode.ForWrite);
+				// add it to the current space 
+				currentSpace.AppendEntity(circle);
+				// tell the transaction manager about it 
+				trans.AddNewlyCreatedDBObject(circle, true);
+
+				// all ok, commit it 
+
+				trans.Commit();
+			}
+			catch (Exception ex)
+			{
+				Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage(ex.ToString());
+			}
+			finally
+			{
+				// whatever happens we must dispose the transaction 
+
+				trans.Dispose();
+
+			}
+
+		}
 	}
 }
 
