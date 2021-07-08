@@ -12,14 +12,85 @@ using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Windows;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
+using MenuItem = Autodesk.AutoCAD.Windows.MenuItem;
 
 // This line is not mandatory, but improves loading performances
-[assembly: CommandClass(typeof(AutoCAD_CSharp_plug_in1.MyCommands))]
+[assembly: CommandClass(typeof(AutoCAD_CSharp_plug_in1.adskClass))]
 
 namespace AutoCAD_CSharp_plug_in1
 {
-	public class MyCommands
+	public class adskClass : IExtensionApplication
 	{
+		ContextMenuExtension myContextMenu;
+
+		private void addContextMenu()
+		{
+			Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+
+			try
+			{
+				myContextMenu = new ContextMenuExtension();
+
+				myContextMenu.Title = "Circle jig";
+
+				MenuItem mi = new MenuItem("Run Circle Jig");
+
+				mi.Click += CallBackOnClick;
+
+				myContextMenu.MenuItems.Add(mi);
+
+				Application.AddDefaultContextMenuExtension(myContextMenu);
+			}
+			catch (Exception ex)
+			{
+				ed.WriteMessage("ошибка с контекстным меню " + ex.Message);
+			}
+		}
+
+		private void RemoveContextMenu()
+		{
+			Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+
+			try
+			{
+				if (myContextMenu != null)
+				{
+					Application.RemoveDefaultContextMenuExtension(myContextMenu);
+
+					myContextMenu = null;
+				}
+			}
+			catch (Exception ex)
+			{
+				ed.WriteMessage("ошибка с удалением контекстным меню " + ex.Message);
+			}
+		}
+
+		private void CallBackOnClick(object sender, System.EventArgs e)
+		{
+			DocumentLock docLock = Application.DocumentManager.MdiActiveDocument.LockDocument();
+
+			circleJig();
+		}
+
+		public void Initialize()
+		{
+			addContextMenu();
+
+		}
+
+		public void Terminate()
+		{
+			RemoveContextMenu();
+		}
+
+		[CommandMethod("testTab")]
+		public void TestTab()
+		{
+			Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+
+		}
+
 		//даём комманду автокада методу
 		[CommandMethod("addAnEnt")]
 		public void AddAnEnt()
