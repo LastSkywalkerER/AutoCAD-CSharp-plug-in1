@@ -90,6 +90,12 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>myCommands.resx</DependentUpon>
     </Compile>
+    <Compile Include="myCustomTab.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="myCustomTab.Designer.cs">
+      <DependentUpon>myCustomTab.cs</DependentUpon>
+    </Compile>
     <Compile Include="myPlugin.cs" />
     <Compile Include="myCommands.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -110,6 +116,9 @@
       <DependentUpon>myCommands.cs</DependentUpon>
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>myCommands.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="myCustomTab.resx">
+      <DependentUpon>myCustomTab.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

@@ -19,26 +19,29 @@ using MenuItem = Autodesk.AutoCAD.Windows.MenuItem;
 
 namespace AutoCAD_CSharp_plug_in1
 {
+	//IExtensionApplication говорит автокаду, что это встраиваемое расширение и добавляет функционал по его инициализации и удалению
 	public class adskClass : IExtensionApplication
 	{
+		//переменная для пункта меню
 		ContextMenuExtension myContextMenu;
-
+		//метод создания пункта меню
 		private void addContextMenu()
 		{
 			Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
 
 			try
 			{
+				//создаём экземпляр меню
 				myContextMenu = new ContextMenuExtension();
-
+				//даём название
 				myContextMenu.Title = "Circle jig";
-
+				//создаём экземпляр пункта меню
 				MenuItem mi = new MenuItem("Run Circle Jig");
-
+				//добавляем обработку клика по пункту меню
 				mi.Click += CallBackOnClick;
-
+				//добавляем пункт в меню
 				myContextMenu.MenuItems.Add(mi);
-
+				//добавляем меню в автокад
 				Application.AddDefaultContextMenuExtension(myContextMenu);
 			}
 			catch (Exception ex)
@@ -46,54 +49,87 @@ namespace AutoCAD_CSharp_plug_in1
 				ed.WriteMessage("ошибка с контекстным меню " + ex.Message);
 			}
 		}
-
-		private void RemoveContextMenu()
+		//описываем удаления меню
+		public void RemoveContextMenu()
 		{
-			Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+			Document activeDoc = Application.DocumentManager.MdiActiveDocument;
 
 			try
 			{
 				if (myContextMenu != null)
 				{
+					//убираем меню из автокада
 					Application.RemoveDefaultContextMenuExtension(myContextMenu);
-
+					//обнуляем наше меню
 					myContextMenu = null;
 				}
 			}
 			catch (Exception ex)
 			{
-				ed.WriteMessage("ошибка с удалением контекстным меню " + ex.Message);
+				activeDoc.Editor.WriteMessage("ошибка с удалением контекстным меню " + ex.Message);
 			}
 		}
-
+		//опиываем действия по клику на пункт меню
 		private void CallBackOnClick(object sender, System.EventArgs e)
 		{
-			DocumentLock docLock = Application.DocumentManager.MdiActiveDocument.LockDocument();
+			//т к объект рисуется не из под автокадовской команды, необходимо заблокировать документ на момент её выполнения
+			using (DocumentLock docLock = Application.DocumentManager.MdiActiveDocument.LockDocument())
+			{
+				circleJig();
+			}
 
-			circleJig();
+			
 		}
 
+		//метод, который должен вызывать по загрузке dll
+		[CommandMethod("Initialize")]
 		public void Initialize()
 		{
+			Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage("\n Инициализация... \n");
+			//добавляем пункт меню автокада (пкм по рабочей области)
 			addContextMenu();
-
+			//добавляем вкладку в настрйоки автокада (options)
+			AdTabDialog();
 		}
 
 		public void Terminate()
 		{
+			Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage("\n Устранение... \n");
+			//метод устраняющий меню автокада
 			RemoveContextMenu();
 		}
+		//переменная для теста вкладки настроек автокада, в неё записываем данные из вкладки
+		public static string myVariable;
+		//создаём вкладку в настройках, описываем событие по открытии настроек
+		private static void AdTabDialog()
+		{
+			Application.DisplayingOptionDialog += TabHandler;
+		}
 
+		private static void TabHandler(object sender, TabbedDialogEventArgs e)
+		{
+			//получаем форму
+			myCustomTab myCustomTab = new myCustomTab();
+			//получаем действие по нажатию на ок
+			TabbedDialogAction tabbedDialogAct = new TabbedDialogAction(myCustomTab.OnOk);
+			//описываем работу вкладки, форму и кнопку ок
+			TabbedDialogExtension tabbedDialogExt = new TabbedDialogExtension(myCustomTab, tabbedDialogAct);
+			//добавляем вкладку в окно
+			e.AddTab("Кастомное значение", tabbedDialogExt);
+		}
+		//проверям работу вкладки настроек, через отображение введённой там информации
 		[CommandMethod("testTab")]
 		public void TestTab()
 		{
 			Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
-
+			ed.WriteMessage(myVariable.ToString());
 		}
+
+
 
 		//даём комманду автокада методу
 		[CommandMethod("addAnEnt")]
-		public void AddAnEnt()
+		public static void AddAnEnt()
 		{
 			//получаем редактор текущего документа
 			Editor editor = Application.DocumentManager.MdiActiveDocument.Editor;
