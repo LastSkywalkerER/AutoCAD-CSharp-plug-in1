@@ -1,5 +1,8 @@
-﻿// (C) Copyright 2021 by  
-//
+﻿// (C) Copyright 2021 by LastSkywalkerER
+
+//для автозагрузки dll:
+//открываем: C:\Program Files\Autodesk\AutoCAD 2020\Support\en-us\acad2020doc.lsp
+//прописываем: (command "_netload" "C:/Users/SkyNB/Google Диск/AutoCad Plugins/labs/AutoCAD CSharp plug-in1/AutoCAD CSharp plug-in1/bin/Debug/AutoCAD CSharp plug-in1.dll")
 using System;
 using System.Windows.Forms;
 
@@ -737,13 +740,14 @@ namespace AutoCAD_CSharp_plug_in1
 			}
 		}
 
+		//делаем интерактивное рисование круга
 		private class MyCircleJig : EntityJig
 		{
+
 			private Point3d centerPoint;
-			private Double radius;
-
+			private double radius;
+			//получаем текущее действие 0 - рисуем центр, 1 - рисуем радиус
 			private int currentInputValue;
-
 			public int CurrentInput
 			{
 				get
@@ -761,104 +765,113 @@ namespace AutoCAD_CSharp_plug_in1
 
 			}
 
+			//метод описывающий работу интерактива Jig
 			protected override SamplerStatus Sampler(JigPrompts prompts)
 			{
+				//разные алгоритм в зависимости от ввода
 				switch (currentInputValue)
 				{
+					//получаем середину круга
 					case 0:
+						//предидущее значение центра
 						Point3d oldPnt = centerPoint;
-
+						//новое значение центра
 						PromptPointResult jigPromptResult = prompts.AcquirePoint("Бахни середину");
-
+						//если новый центр введён, продолжаем
 						if (jigPromptResult.Status == PromptStatus.OK)
 						{
+							//получаем значение центра
 							centerPoint = jigPromptResult.Value;
-
+							//если разница между старым и новый центром недостаточна, то не даём команду на обновление
 							if (oldPnt.DistanceTo(centerPoint) < 0.01)
 							{
 								return SamplerStatus.NoChange;
 							}
 						}
-
+						//даём команду о том, что картинку нужно обновить
 						return SamplerStatus.OK;
 						break;
 
 					case 1:
-
+						//получаем радиус
 						double oldRadius = radius;
-
+						//просим радиус
 						JigPromptDistanceOptions jigPromptDistanceOptions = new JigPromptDistanceOptions("Бахни радиус ");
-
+						//разрешаем базовую точку в опцию растояния
 						jigPromptDistanceOptions.UseBasePoint = true;
-
+						//добавляем базовую точку в опцию расстояния
 						jigPromptDistanceOptions.BasePoint = centerPoint;
-
+						//получаем результирующую дистанцию
 						PromptDoubleResult jigPromptPointResult = prompts.AcquireDistance(jigPromptDistanceOptions);
-
+						//если дистанция получена, рподолжаем
 						if (jigPromptPointResult.Status == PromptStatus.OK)
 						{
+							//получаем значение радиуса
 							radius = jigPromptPointResult.Value;
-
+							//не даём значению радиуса упасть ниже 1
 							if (System.Math.Abs(radius) < 0.1)
 							{
 								radius = 1;
 							}
-
+							//проверям достаточно ли изменился радиус для обновления
 							if (System.Math.Abs(oldRadius - radius) < 0.01)
 							{
 								return SamplerStatus.NoChange;
 							}
 						}
+						//обновляем интерактивную картинку
 						return SamplerStatus.OK;
 
 						break;
 				}
+				//функция по умолчанию должна возвращать статус, примем статус неизменности
 				return SamplerStatus.NoChange;
-
-				//throw new NotImplementedException();
 			}
-
+			//функция описывающая интерактивное обновление картинки
 			protected override bool Update()
 			{
+				//разные действия в зависимости от ввода
 				switch (currentInputValue)
 				{
 					case 0:
+						//обновляем центр
 						((Circle)this.Entity).Center = centerPoint;
 
 						break;
 
 					case 1:
+						//обновляем радиус
 						((Circle)this.Entity).Radius = radius;
 
 						break;
 				}
+				//говорим, что успешно обновились
 				return true;
-
-				//throw new NotImplementedException();
 			}
 		}
-		
+		//личная команда круга
 		[CommandMethod("circleJig")]
 		public void circleJig()
 		{
+			//задаём начальное значение круга
 			Circle circle = new Circle(Point3d.Origin, Vector3d.ZAxis, 10);
-
+			//получаем интерактивный ввод Jig и передаём туда рисуемый элемент
 			MyCircleJig jig = new MyCircleJig(circle);
-
+			//перебираем способы ввода по очереди, здесь Jig поработал с кругом и вернул введённую версию
 			for (int i = 0; i < 2; i++)
 			{
 				jig.CurrentInput = i;
 
 				Editor editor = Application.DocumentManager.MdiActiveDocument.Editor;
-
+				//получаем результат ввода от Jig
 				PromptResult promptResult = editor.Drag(jig);
-
+				//если ввод отменён или с ошибкой, то выходим
 				if ((promptResult.Status == PromptStatus.Cancel) || (promptResult.Status == PromptStatus.Error))
 				{
 					return;
 				}
 			}
-
+			//далее простое добавление круга в чертёж
 			Database dwg = Application.DocumentManager.MdiActiveDocument.Database;
 			// now start a transaction 
 			Transaction trans = dwg.TransactionManager.StartTransaction();
